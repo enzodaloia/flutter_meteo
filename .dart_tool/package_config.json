@@ -266,11 +266,7 @@
       "languageVersion": "3.5"
     }
   ],
-<<<<<<< Updated upstream
-  "generated": "2024-10-08T12:48:30.045843Z",
-=======
-  "generated": "2024-10-08T12:51:23.666799Z",
->>>>>>> Stashed changes
+  "generated": "2024-10-08T12:52:23.673657Z",
   "generator": "pub",
   "generatorVersion": "3.5.3",
   "flutterRoot": "file:///Applications/flutter",
