@@ -4,7 +4,7 @@ import 'package:projet_meteo/ui/home.dart';
 // import 'package:projet_meteo/ui/welcome.dart';
 
 class GetStarted extends StatelessWidget {
-  const GetStarted({Key? key}) : super(key: key);
+  const GetStarted({super.key});
 
   @override
   Widget build(BuildContext context) {

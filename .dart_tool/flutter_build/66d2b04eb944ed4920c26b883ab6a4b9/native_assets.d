@@ -1,0 +1,1 @@
+ /Users/enzo/Documents/GitHub/flutter_meteo/.dart_tool/flutter_build/66d2b04eb944ed4920c26b883ab6a4b9/native_assets.yaml: 

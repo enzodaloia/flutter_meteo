@@ -6,7 +6,7 @@ import 'package:intl/intl.dart';
 import 'package:projet_meteo/models/constants.dart';
 
 class Home extends StatefulWidget {
-  const Home({Key? key}) : super(key: key);
+  const Home({super.key});
 
   @override
   State createState() => _HomeState();
@@ -134,8 +134,8 @@ class _HomeState extends State<Home> {
   }
 
   final Shader linearGradient = const LinearGradient(
-    colors: <Color>[Color(0xffABCFF2), Color(0xff9C6F3)],
-  ).createShader(Rect.fromLTWH(0.0, 0.0, 200.0, 70.0));
+    colors: <Color>[Color(0xffABCFF2), Color(0x0ff9c6f3)],
+  ).createShader(const Rect.fromLTWH(0.0, 0.0, 200.0, 70.0));
 
   @override
   Widget build(BuildContext context) {
@@ -227,7 +227,7 @@ class _HomeState extends State<Home> {
                           padding: const EdgeInsets.only(top: 4.0),
                           child: Text(
                             '$temperature',
-                            style: TextStyle(
+                            style: const TextStyle(
                               color: Colors.black,
                               fontSize: 80,
                               fontWeight: FontWeight.bold,
