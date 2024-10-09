@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:geolocator/geolocator.dart';
 import 'package:intl/intl.dart';
 import 'package:projet_meteo/models/constants.dart';
+import 'package:projet_meteo/widgets/weather_item.dart';
 
 class Home extends StatefulWidget {
   const Home({super.key});
@@ -14,21 +15,84 @@ class Home extends StatefulWidget {
 
 class _HomeState extends State<Home> {
   String imageUrl = '';
-  int temperature = 0;
-  int maxTemp = 0;
-  String weatherStateName = 'Loading...';
+  double temperature = 0.0;
+  double maxTemp = 0.0;
+  String weatherStateName = 'Chargement...';
   int humidity = 0;
-  int windSpeed = 0;
+  double windSpeed = 0.0;
   final TextEditingController _controller = TextEditingController();
   String _cityName = 'Chargement du nom de votre ville...';
-  final String _apiKey =
-      'ad112961462d966845c4778364ea256c'; // Remplace par ta clé API OpenWeather
+  List<dynamic> forecastList = [];
 
   @override
   void initState() {
     super.initState();
     _fetchWeatherByLocation(); // Obtenir les infos météo en fonction de la localisation actuelle au démarrage
   }
+
+  // Mapping des codes météo d'Open-Meteo vers des descriptions
+  final Map<int, String> weatherDescriptions = {
+    0: 'Ciel dégagé',
+    1: 'Principalement dégagé',
+    2: 'Partiellement nuageux',
+    3: 'Couvert',
+    45: 'Brouillard',
+    48: 'Brouillard givrant',
+    51: 'Bruine légère',
+    53: 'Bruine modérée',
+    55: 'Bruine dense',
+    56: 'Bruine verglaçante légère',
+    57: 'Bruine verglaçante dense',
+    61: 'Pluie légère',
+    63: 'Pluie modérée',
+    65: 'Pluie forte',
+    66: 'Pluie verglaçante légère',
+    67: 'Pluie verglaçante forte',
+    71: 'Neige légère',
+    73: 'Neige modérée',
+    75: 'Neige forte',
+    77: 'Grains de neige',
+    80: 'Averses de pluie légère',
+    81: 'Averses de pluie modérée',
+    82: 'Averses de pluie violente',
+    85: 'Averses de neige légère',
+    86: 'Averses de neige forte',
+    95: 'Orage modéré',
+    96: 'Orage avec grêle légère',
+    99: 'Orage avec grêle forte',
+  };
+
+  // Mapping des codes météo d'Open-Meteo vers les noms de fichiers d'images
+  final Map<int, String> weatherImages = {
+    0: 'ciel_degage',
+    1: 'principalement_degage',
+    2: 'partiellement_nuageux',
+    3: 'couvert',
+    45: 'brouillard',
+    48: 'brouillard_givrant',
+    51: 'bruine_legere',
+    53: 'bruine_moderee',
+    55: 'bruine_dense',
+    56: 'bruine_verglacante_legere',
+    57: 'bruine_verglacante_dense',
+    61: 'pluie_legere',
+    63: 'pluie_moderee',
+    65: 'pluie_forte',
+    66: 'pluie_verglacante_legere',
+    67: 'pluie_verglacante_forte',
+    71: 'neige_legere',
+    73: 'neige_moderee',
+    75: 'neige_forte',
+    77: 'grains_de_neige',
+    80: 'averses_pluie_legere',
+    81: 'averses_pluie_moderee',
+    82: 'averses_pluie_violente',
+    85: 'averses_neige_legere',
+    86: 'averses_neige_forte',
+    95: 'orage_modere',
+    96: 'orage_grele_legere',
+    99: 'orage_grele_forte',
+  };
 
   // Méthode pour obtenir la position actuelle
   Future<void> _fetchWeatherByLocation() async {
@@ -67,30 +131,89 @@ class _HomeState extends State<Home> {
     _fetchWeatherByCoords(position.latitude, position.longitude);
   }
 
-  // Méthode pour faire une requête API avec latitude et longitude
+  // Méthode pour faire une requête API Open-Meteo avec latitude et longitude
   Future<void> _fetchWeatherByCoords(double lat, double lon) async {
     final url = Uri.parse(
-        'https://api.openweathermap.org/data/2.5/weather?lat=$lat&lon=$lon&appid=$_apiKey&units=metric&lang=fr');
+        'https://api.open-meteo.com/v1/forecast?latitude=$lat&longitude=$lon&current_weather=true&hourly=relativehumidity_2m&daily=temperature_2m_max&timezone=auto&language=fr');
 
     try {
       final response = await http.get(url);
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        setState(() {
-          _cityName = data['name'] ?? 'Ville inconnue';
-          temperature = (data['main']['temp'] as num).round();
-          weatherStateName = data['weather'][0]['description'] ??
-              'Données météo indisponibles';
-          humidity = (data['main']['humidity'] as num).round();
-          windSpeed = (data['wind']['speed'] as num).round();
-          maxTemp = (data['main']['temp_max'] as num).round();
 
-          imageUrl = weatherStateName.replaceAll(' ', '').toLowerCase();
+        if (data['current_weather'] == null) {
+          setState(() {
+            _cityName = 'Données météo non disponibles';
+          });
+          return;
+        }
+
+        final currentWeather = data['current_weather'];
+        final weathercode = currentWeather['weathercode'] as int;
+        final temperature = (currentWeather['temperature'] as num).toDouble();
+        final windSpeed = (currentWeather['windspeed'] as num).toDouble();
+        final time = currentWeather['time'];
+
+        final hourly = data['hourly'];
+        if (hourly == null) {
+          setState(() {
+            _cityName = 'Données météo horaire non disponibles';
+          });
+          return;
+        }
+
+        final hourlyTimes = List<String>.from(hourly['time'] ?? []);
+        final humidityValues =
+            List<dynamic>.from(hourly['relativehumidity_2m'] ?? []);
+        int humidity = 0;
+
+        int index = hourlyTimes.indexOf(time);
+        if (index != -1 && index < humidityValues.length) {
+          humidity = (humidityValues[index] as num).round();
+        }
+
+        final daily = data['daily'];
+        double maxTemp = 0.0;
+        List<dynamic> forecastListTemp = [];
+
+        if (daily != null &&
+            daily['temperature_2m_max'] != null &&
+            daily['weathercode'] != null &&
+            daily['time'] != null) {
+          final dailyMaxTemps = List<dynamic>.from(daily['temperature_2m_max']);
+          final dailyTimes = List<String>.from(daily['time']);
+          final dailyWeatherCodes = List<dynamic>.from(daily['weathercode']);
+
+          forecastListTemp = List.generate(dailyMaxTemps.length, (i) {
+            return {
+              'date': dailyTimes[i],
+              'maxTemp': (dailyMaxTemps[i] as num).toDouble(),
+              'weathercode': (dailyWeatherCodes[i] as num).toInt(),
+            };
+          });
+        }
+
+        String weatherDescription =
+            weatherDescriptions[weathercode] ?? 'Données météo indisponibles';
+        String imageUrl = weatherImages[weathercode] ?? 'default_weather';
+
+        // Obtenir le nom de la ville à partir des coordonnées
+        String cityName = await _getCityNameFromCoords(lat, lon);
+
+        setState(() {
+          _cityName = cityName;
+          this.temperature = temperature;
+          this.weatherStateName = weatherDescription;
+          this.humidity = humidity;
+          this.windSpeed = windSpeed;
+          this.maxTemp = maxTemp;
+          this.imageUrl = imageUrl;
+          this.forecastList = forecastListTemp; // Stockage des prévisions
         });
       } else {
         setState(() {
-          _cityName = 'Ville non trouvée';
+          _cityName = 'Données météo non disponibles';
         });
       }
     } catch (e) {
@@ -100,33 +223,145 @@ class _HomeState extends State<Home> {
     }
   }
 
-  // Méthode pour faire une requête API avec le nom de la ville
-  Future<void> _fetchWeatherByCity(String city) async {
+  Future<String> _getCityNameFromCoords(double lat, double lon) async {
     final url = Uri.parse(
-        'https://api.openweathermap.org/data/2.5/weather?q=$city&appid=$_apiKey&units=metric&lang=fr');
+        'https://nominatim.openstreetmap.org/reverse?lat=$lat&lon=$lon&format=json&addressdetails=1&accept-language=fr');
 
     try {
       final response = await http.get(url);
-
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        setState(() {
-          _cityName = data['name'] ?? 'Ville inconnue';
-          temperature = (data['main']['temp'] as num).round();
-          weatherStateName = data['weather'][0]['description'] ??
-              'Données météo indisponibles';
-          humidity = (data['main']['humidity'] as num).round();
-          windSpeed = (data['wind']['speed'] as num).round();
-          maxTemp = (data['main']['temp_max'] as num).round();
+        if (data['address'] != null) {
+          final city = data['address']['city'] ??
+              data['address']['town'] ??
+              data['address']['village'] ??
+              'Ville inconnue';
+          return city;
+        }
+      }
+    } catch (e) {
+      return 'Ville inconnue'; // En cas d'erreur
+    }
+    return 'Ville inconnue';
+  }
 
-          imageUrl = weatherStateName.replaceAll(' ', '').toLowerCase();
-        });
+  // Méthode pour faire une requête API Open-Meteo avec le nom de la ville
+  Future<void> _fetchWeatherByCity(String city) async {
+    final geocodingUrl = Uri.parse(
+        'https://geocoding-api.open-meteo.com/v1/search?name=$city&count=1&language=fr&format=json');
+
+    try {
+      final geocodingResponse = await http.get(geocodingUrl);
+
+      if (geocodingResponse.statusCode == 200) {
+        final geocodingData = json.decode(geocodingResponse.body);
+
+        if (geocodingData['results'] != null &&
+            geocodingData['results'].isNotEmpty) {
+          final firstResult = geocodingData['results'][0];
+          final lat = firstResult['latitude'];
+          final lon = firstResult['longitude'];
+          final cityName = firstResult['name'] ?? 'Ville inconnue';
+
+          // Maintenant, utilisez les coordonnées pour obtenir les données météo
+          final url = Uri.parse(
+              'https://api.open-meteo.com/v1/forecast?latitude=$lat&longitude=$lon&current_weather=true&hourly=relativehumidity_2m&daily=temperature_2m_max,weathercode&timezone=auto&language=fr');
+
+          final weatherResponse = await http.get(url);
+
+          if (weatherResponse.statusCode == 200) {
+            final weatherData = json.decode(weatherResponse.body);
+
+            // Vérifiez que current_weather existe
+            if (weatherData['current_weather'] == null) {
+              setState(() {
+                _cityName = 'Données météo non disponibles';
+              });
+              return;
+            }
+
+            final currentWeather = weatherData['current_weather'];
+            final weathercode = currentWeather['weathercode'] as int;
+            final temperature =
+                (currentWeather['temperature'] as num).toDouble();
+            final windSpeed = (currentWeather['windspeed'] as num).toDouble();
+            final time = currentWeather['time'];
+
+            // Extraction de l'humidité relative actuelle
+            final hourly = weatherData['hourly'];
+            if (hourly == null) {
+              setState(() {
+                _cityName = 'Données météo horaire non disponibles';
+              });
+              return;
+            }
+
+            final hourlyTimes = List<String>.from(hourly['time'] ?? []);
+            final humidityValues =
+                List<dynamic>.from(hourly['relativehumidity_2m'] ?? []);
+            int humidity = 0;
+
+            // Trouver l'index correspondant à l'heure actuelle
+            int index = hourlyTimes.indexOf(time);
+            if (index != -1 && index < humidityValues.length) {
+              humidity = (humidityValues[index] as num).round();
+            }
+
+            // Extraction de la température maximale quotidienne et des codes météo
+            final daily = weatherData['daily'];
+            double maxTemp = 0.0;
+            List<dynamic> forecastListTemp = [];
+            if (daily != null &&
+                daily['temperature_2m_max'] != null &&
+                daily['weathercode'] != null &&
+                daily['time'] != null) {
+              final dailyMaxTemps =
+                  List<dynamic>.from(daily['temperature_2m_max']);
+              final dailyTimes = List<String>.from(daily['time']);
+              final dailyWeatherCodes =
+                  List<dynamic>.from(daily['weathercode']);
+
+              forecastListTemp = List.generate(dailyMaxTemps.length, (i) {
+                return {
+                  'date': dailyTimes[i],
+                  'maxTemp': (dailyMaxTemps[i] as num).toDouble(),
+                  'weathercode': (dailyWeatherCodes[i] as num).toInt(),
+                };
+              });
+            }
+
+            // Mapping du weathercode à une description et une image
+            String weatherDescription = weatherDescriptions[weathercode] ??
+                'Données météo indisponibles';
+            String imageUrl = weatherImages[weathercode] ?? 'default_weather';
+
+            setState(() {
+              _cityName = cityName;
+              this.temperature = temperature;
+              this.weatherStateName = weatherDescription;
+              this.humidity = humidity;
+              this.windSpeed = windSpeed;
+              this.maxTemp = maxTemp;
+              this.imageUrl = imageUrl;
+              this.forecastList = forecastListTemp; // Stockage des prévisions
+            });
+          } else {
+            setState(() {
+              _cityName = 'Données météo non disponibles';
+            });
+          }
+        } else {
+          setState(() {
+            _cityName = 'Ville non trouvée';
+          });
+        }
       } else {
         setState(() {
-          _cityName = 'Ville non trouvée';
+          _cityName = 'Erreur de géocodage';
         });
       }
     } catch (e) {
+      print('Erreur lors de la récupération des données météo par ville : $e');
       setState(() {
         _cityName = 'Erreur de récupération des données';
       });
@@ -134,7 +369,7 @@ class _HomeState extends State<Home> {
   }
 
   final Shader linearGradient = const LinearGradient(
-    colors: <Color>[Color(0xffABCFF2), Color(0x0ff9c6f3)],
+    colors: <Color>[Color(0xffABCFF2), Color(0xff9c6f3)],
   ).createShader(const Rect.fromLTWH(0.0, 0.0, 200.0, 70.0));
 
   @override
@@ -157,7 +392,7 @@ class _HomeState extends State<Home> {
             }
           },
           style: const TextStyle(
-              color: Colors.white), // Texte visible sur l'AppBar
+              color: Colors.black), // Texte visible sur l'AppBar
         ),
       ),
       body: Container(
@@ -226,7 +461,7 @@ class _HomeState extends State<Home> {
                         Padding(
                           padding: const EdgeInsets.only(top: 4.0),
                           child: Text(
-                            '$temperature',
+                            '${temperature.round()}',
                             style: const TextStyle(
                               color: Colors.black,
                               fontSize: 80,
@@ -234,11 +469,69 @@ class _HomeState extends State<Home> {
                             ),
                           ),
                         ),
+                        const Text(
+                          '°C',
+                          style: TextStyle(
+                            color: Colors.black,
+                            fontSize: 40,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        )
                       ],
                     ),
                   ),
                 ],
               ),
+            ),
+            const SizedBox(
+              height: 50,
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 40),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  weatherItem(
+                      value: windSpeed.round(),
+                      text: 'Vitesse du vent',
+                      unit: ' km/h',
+                      imageUrl: 'assets/windspeed.png'),
+                  weatherItem(
+                      value: humidity,
+                      text: 'Humidité',
+                      unit: '%',
+                      imageUrl: 'assets/humidity.png'),
+                  weatherItem(
+                      value: maxTemp.round(),
+                      text: 'Temp. max',
+                      unit: '°C',
+                      imageUrl: 'assets/max-temp.png'),
+                ],
+              ),
+            ),
+            const SizedBox(
+              height: 50,
+            ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                const Text(
+                  'Aujourd\'hui',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 24,
+                  ),
+                ),
+                Text(
+                  '7 prochains jours',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 18,
+                    color: myConstants.primaryColor,
+                  ),
+                ),
+              ],
             ),
           ],
         ),
