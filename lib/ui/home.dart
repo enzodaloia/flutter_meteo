@@ -533,6 +533,108 @@ class _HomeState extends State<Home> {
                 ),
               ],
             ),
+            const SizedBox(
+              height: 20,
+            ),
+            Expanded(
+              child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                itemCount: forecastListTemp.length < 7
+                    ? forecastListTemp.length
+                    : 7, // Limiter à 7 jours
+                itemBuilder: (BuildContext context, int index) {
+                  String today = DateTime.now().toString().substring(0, 10);
+
+                  // Récupération des données pour le jour actuel
+                  var selectedDay = forecastListTemp[index]['date'];
+                  var futureWeatherName = weatherDescriptions[
+                      forecastListTemp[index]['weathercode']];
+                  var weatherUrl =
+                      futureWeatherName.replaceAll(' ', '').toLowerCase();
+
+                  // Conversion de la date au format lisible
+                  var parsedDate = DateTime.parse(selectedDay);
+                  var newDate = DateFormat('EEEE')
+                      .format(parsedDate)
+                      .substring(0, 3); // Ex: "Mon", "Tue"
+
+                  // Température maximale pour la journée
+                  var maxTemp =
+                      forecastListTemp[index]['maxTemp'].round().toString();
+
+                  // Création d'une carte météo pour chaque jour de la semaine
+                  return GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => DetailPage(
+                            consolidatedWeatherList:
+                                forecastListTemp, // Passer forecastListTemp
+                            selectedId: index,
+                            location: location,
+                          ),
+                        ),
+                      );
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 20),
+                      margin:
+                          const EdgeInsets.only(right: 20, bottom: 10, top: 10),
+                      width: 80,
+                      decoration: BoxDecoration(
+                        color: selectedDay == today
+                            ? myConstants.primaryColor
+                            : Colors.white,
+                        borderRadius:
+                            const BorderRadius.all(Radius.circular(10)),
+                        boxShadow: [
+                          BoxShadow(
+                            offset: const Offset(0, 1),
+                            blurRadius: 5,
+                            color: selectedDay == today
+                                ? myConstants.primaryColor
+                                : Colors.black54.withOpacity(.2),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          // Affichage de la température maximale
+                          Text(
+                            '$maxTemp°C', // Température avec unité
+                            style: TextStyle(
+                              fontSize: 17,
+                              color: selectedDay == today
+                                  ? Colors.white
+                                  : myConstants.primaryColor,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          // Icône météo
+                          Image.asset(
+                            'assets/$weatherUrl.png',
+                            width: 30,
+                          ),
+                          // Jour de la semaine (abrégé)
+                          Text(
+                            newDate,
+                            style: TextStyle(
+                              fontSize: 17,
+                              color: selectedDay == today
+                                  ? Colors.white
+                                  : myConstants.primaryColor,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            )
           ],
         ),
       ),
