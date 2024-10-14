@@ -5,6 +5,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:intl/intl.dart';
 import 'package:projet_meteo/models/constants.dart';
 import 'package:projet_meteo/widgets/weather_item.dart';
+import 'package:projet_meteo/ui/detail_page.dart';
 
 class Home extends StatefulWidget {
   const Home({super.key});
@@ -64,34 +65,34 @@ class _HomeState extends State<Home> {
 
   // Mapping des codes météo d'Open-Meteo vers les noms de fichiers d'images
   final Map<int, String> weatherImages = {
-    0: 'ciel_degage',
-    1: 'principalement_degage',
-    2: 'partiellement_nuageux',
+    0: 'cieldégagé',
+    1: 'cieldégagé',
+    2: 'peunuageux',
     3: 'couvert',
     45: 'brouillard',
-    48: 'brouillard_givrant',
-    51: 'bruine_legere',
-    53: 'bruine_moderee',
-    55: 'bruine_dense',
-    56: 'bruine_verglacante_legere',
-    57: 'bruine_verglacante_dense',
-    61: 'pluie_legere',
-    63: 'pluie_moderee',
-    65: 'pluie_forte',
-    66: 'pluie_verglacante_legere',
-    67: 'pluie_verglacante_forte',
-    71: 'neige_legere',
-    73: 'neige_moderee',
-    75: 'neige_forte',
-    77: 'grains_de_neige',
-    80: 'averses_pluie_legere',
-    81: 'averses_pluie_moderee',
-    82: 'averses_pluie_violente',
-    85: 'averses_neige_legere',
-    86: 'averses_neige_forte',
-    95: 'orage_modere',
-    96: 'orage_grele_legere',
-    99: 'orage_grele_forte',
+    48: 'hail',
+    51: 'peunuageux',
+    53: 'brouillard',
+    55: 'brouillard',
+    56: 'hail',
+    57: 'hail',
+    61: 'légèrepluie',
+    63: 'pluiemodérée',
+    65: 'pluiemodérée',
+    66: 'hail',
+    67: 'heavyrain',
+    71: 'hail',
+    73: 'hail',
+    75: 'hail',
+    77: 'hail',
+    80: 'légèrepluie',
+    81: 'légèrepluie',
+    82: 'légèrepluie',
+    85: 'hail',
+    86: 'hail',
+    95: 'thunderstorm',
+    96: 'thunderstorm',
+    99: 'heavyrain',
   };
 
   // Méthode pour obtenir la position actuelle
@@ -131,10 +132,9 @@ class _HomeState extends State<Home> {
     _fetchWeatherByCoords(position.latitude, position.longitude);
   }
 
-  // Méthode pour faire une requête API Open-Meteo avec latitude et longitude
   Future<void> _fetchWeatherByCoords(double lat, double lon) async {
     final url = Uri.parse(
-        'https://api.open-meteo.com/v1/forecast?latitude=$lat&longitude=$lon&current_weather=true&hourly=relativehumidity_2m&daily=temperature_2m_max&timezone=auto&language=fr');
+        'https://api.open-meteo.com/v1/forecast?latitude=$lat&longitude=$lon&current_weather=true&hourly=relativehumidity_2m&daily=temperature_2m_max,weathercode&timezone=auto&language=fr');
 
     try {
       final response = await http.get(url);
@@ -174,7 +174,6 @@ class _HomeState extends State<Home> {
         }
 
         final daily = data['daily'];
-        double maxTemp = 0.0;
         List<dynamic> forecastListTemp = [];
 
         if (daily != null &&
@@ -204,12 +203,14 @@ class _HomeState extends State<Home> {
         setState(() {
           _cityName = cityName;
           this.temperature = temperature;
-          this.weatherStateName = weatherDescription;
+          weatherStateName = weatherDescription;
           this.humidity = humidity;
           this.windSpeed = windSpeed;
-          this.maxTemp = maxTemp;
+          this.maxTemp = forecastListTemp.isNotEmpty
+              ? forecastListTemp[0]['maxTemp']
+              : 0.0;
           this.imageUrl = imageUrl;
-          this.forecastList = forecastListTemp; // Stockage des prévisions
+          forecastList = forecastListTemp; // Stockage des prévisions
         });
       } else {
         setState(() {
@@ -309,7 +310,6 @@ class _HomeState extends State<Home> {
 
             // Extraction de la température maximale quotidienne et des codes météo
             final daily = weatherData['daily'];
-            double maxTemp = 0.0;
             List<dynamic> forecastListTemp = [];
             if (daily != null &&
                 daily['temperature_2m_max'] != null &&
@@ -338,12 +338,14 @@ class _HomeState extends State<Home> {
             setState(() {
               _cityName = cityName;
               this.temperature = temperature;
-              this.weatherStateName = weatherDescription;
+              weatherStateName = weatherDescription;
               this.humidity = humidity;
               this.windSpeed = windSpeed;
-              this.maxTemp = maxTemp;
+              this.maxTemp = forecastListTemp.isNotEmpty
+                  ? forecastListTemp[0]['maxTemp']
+                  : 0.0;
               this.imageUrl = imageUrl;
-              this.forecastList = forecastListTemp; // Stockage des prévisions
+              forecastList = forecastListTemp; // Stockage des prévisions
             });
           } else {
             setState(() {
@@ -369,7 +371,7 @@ class _HomeState extends State<Home> {
   }
 
   final Shader linearGradient = const LinearGradient(
-    colors: <Color>[Color(0xffABCFF2), Color(0xff9c6f3)],
+    colors: <Color>[Color(0xffABCFF2), Color(0x0ff9c6f3)],
   ).createShader(const Rect.fromLTWH(0.0, 0.0, 200.0, 70.0));
 
   @override
@@ -534,23 +536,25 @@ class _HomeState extends State<Home> {
               ],
             ),
             const SizedBox(
-              height: 20,
+              height: 10,
             ),
             Expanded(
               child: ListView.builder(
                 scrollDirection: Axis.horizontal,
-                itemCount: forecastListTemp.length < 7
-                    ? forecastListTemp.length
+                itemCount: forecastList.length < 7
+                    ? forecastList.length
                     : 7, // Limiter à 7 jours
                 itemBuilder: (BuildContext context, int index) {
                   String today = DateTime.now().toString().substring(0, 10);
 
                   // Récupération des données pour le jour actuel
-                  var selectedDay = forecastListTemp[index]['date'];
-                  var futureWeatherName = weatherDescriptions[
-                      forecastListTemp[index]['weathercode']];
-                  var weatherUrl =
-                      futureWeatherName.replaceAll(' ', '').toLowerCase();
+                  var selectedDay = forecastList[index]['date'];
+                  var futureWeatherName =
+                      weatherDescriptions[forecastList[index]['weathercode']];
+                  var weatherUrl = (futureWeatherName != null)
+                      ? weatherImages[forecastList[index]['weathercode']] ??
+                          'default_weather'
+                      : 'default_weather';
 
                   // Conversion de la date au format lisible
                   var parsedDate = DateTime.parse(selectedDay);
@@ -560,7 +564,7 @@ class _HomeState extends State<Home> {
 
                   // Température maximale pour la journée
                   var maxTemp =
-                      forecastListTemp[index]['maxTemp'].round().toString();
+                      forecastList[index]['maxTemp'].round().toString();
 
                   // Création d'une carte météo pour chaque jour de la semaine
                   return GestureDetector(
@@ -570,9 +574,9 @@ class _HomeState extends State<Home> {
                         MaterialPageRoute(
                           builder: (context) => DetailPage(
                             consolidatedWeatherList:
-                                forecastListTemp, // Passer forecastListTemp
+                                forecastList, // Passer forecastList
                             selectedId: index,
-                            location: location,
+                            location: _cityName,
                           ),
                         ),
                       );
@@ -615,7 +619,7 @@ class _HomeState extends State<Home> {
                           // Icône météo
                           Image.asset(
                             'assets/$weatherUrl.png',
-                            width: 30,
+                            width: 25,
                           ),
                           // Jour de la semaine (abrégé)
                           Text(
