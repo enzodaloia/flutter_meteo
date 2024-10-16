@@ -420,21 +420,6 @@ class _HomeState extends State<Home> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const SizedBox(height: 10),
-            ElevatedButton(
-              onPressed: _toggleTemperatureUnit,
-              style: ElevatedButton.styleFrom(
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
-              child: Text(
-                isCelsius ? 'Convertir en °F' : 'Convertir en °C',
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
             const SizedBox(height: 20),
             Text(
               _cityName,
