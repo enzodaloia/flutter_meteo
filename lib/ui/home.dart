@@ -24,6 +24,7 @@ class _HomeState extends State<Home> {
   final TextEditingController _controller = TextEditingController();
   String _cityName = 'Chargement du nom de votre ville...';
   List<dynamic> forecastList = [];
+  bool isCelsius = true;
 
   @override
   void initState() {
@@ -370,6 +371,23 @@ class _HomeState extends State<Home> {
     }
   }
 
+  double _convertCelsiusToFahrenheit(double celsius) {
+    return celsius * 9 / 5 + 32;
+  }
+
+  void _toggleTemperatureUnit() {
+    setState(() {
+      if (isCelsius) {
+        temperature = _convertCelsiusToFahrenheit(temperature);
+        maxTemp = _convertCelsiusToFahrenheit(maxTemp);
+      } else {
+        temperature = (temperature - 32) * 5 / 9;
+        maxTemp = (maxTemp - 32) * 5 / 9;
+      }
+      isCelsius = !isCelsius;
+    });
+  }
+
   final Shader linearGradient = const LinearGradient(
     colors: <Color>[Color(0xffABCFF2), Color(0x0ff9c6f3)],
   ).createShader(const Rect.fromLTWH(0.0, 0.0, 200.0, 70.0));
@@ -402,6 +420,21 @@ class _HomeState extends State<Home> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            const SizedBox(height: 10),
+            ElevatedButton(
+              onPressed: _toggleTemperatureUnit,
+              style: ElevatedButton.styleFrom(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              child: Text(
+                isCelsius ? 'Convertir en °F' : 'Convertir en °C',
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
             const SizedBox(height: 20),
             Text(
               _cityName,
@@ -444,6 +477,24 @@ class _HomeState extends State<Home> {
                         : Container(),
                   ),
                   Positioned(
+                    top: 20,
+                    right: 20,
+                    child: ElevatedButton(
+                      onPressed: _toggleTemperatureUnit,
+                      style: ElevatedButton.styleFrom(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      child: Text(
+                        isCelsius ? 'Convertir en °F' : 'Convertir en °C',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                  Positioned(
                     bottom: 30,
                     left: 20,
                     child: Text(
@@ -455,7 +506,7 @@ class _HomeState extends State<Home> {
                     ),
                   ),
                   Positioned(
-                    top: 20,
+                    top: 60,
                     right: 20,
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -471,14 +522,14 @@ class _HomeState extends State<Home> {
                             ),
                           ),
                         ),
-                        const Text(
-                          '°C',
-                          style: TextStyle(
+                        Text(
+                          isCelsius ? '°C' : '°F',
+                          style: const TextStyle(
                             color: Colors.black,
                             fontSize: 40,
                             fontWeight: FontWeight.bold,
                           ),
-                        )
+                        ),
                       ],
                     ),
                   ),
@@ -506,13 +557,13 @@ class _HomeState extends State<Home> {
                   weatherItem(
                       value: maxTemp.round(),
                       text: 'Temp. max',
-                      unit: '°C',
+                      unit: isCelsius ? '°C' : '°F',
                       imageUrl: 'assets/max-temp.png'),
                 ],
               ),
             ),
             const SizedBox(
-              height: 50,
+              height: 40,
             ),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -607,7 +658,7 @@ class _HomeState extends State<Home> {
                         children: [
                           // Affichage de la température maximale
                           Text(
-                            '$maxTemp°C', // Température avec unité
+                            isCelsius ? '°C' : '°F', // Température avec unité
                             style: TextStyle(
                               fontSize: 17,
                               color: selectedDay == today
