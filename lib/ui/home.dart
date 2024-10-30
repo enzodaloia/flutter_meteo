@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import 'package:projet_meteo/models/constants.dart';
 import 'package:projet_meteo/widgets/weather_item.dart';
 import 'package:projet_meteo/ui/detail_page.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 class Home extends StatefulWidget {
   const Home({super.key});
@@ -25,11 +26,28 @@ class _HomeState extends State<Home> {
   String _cityName = 'Chargement du nom de votre ville...';
   List<dynamic> forecastList = [];
   bool isCelsius = true;
+  FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+      FlutterLocalNotificationsPlugin();
 
   @override
   void initState() {
     super.initState();
-    _fetchWeatherByLocation(); // Obtenir les infos météo en fonction de la localisation actuelle au démarrage
+    _fetchWeatherByLocation();
+    _initializeNotifications();
+
+    Future.delayed(Duration(seconds: 2), () {
+      showNotification(
+          "Test Notification", "Ceci est un test de notification.");
+    });
+  }
+
+  Future<void> _initializeNotifications() async {
+    var initializationSettingsAndroid =
+        AndroidInitializationSettings('@mipmap/ic_launcher');
+    var initializationSettings =
+        InitializationSettings(android: initializationSettingsAndroid);
+
+    await flutterLocalNotificationsPlugin.initialize(initializationSettings);
   }
 
   // Mapping des codes météo d'Open-Meteo vers des descriptions
@@ -133,6 +151,7 @@ class _HomeState extends State<Home> {
     _fetchWeatherByCoords(position.latitude, position.longitude);
   }
 
+  // Méthode pour obtenir la météo en fonction de la longitude et de la latitude
   Future<void> _fetchWeatherByCoords(double lat, double lon) async {
     final url = Uri.parse(
         'https://api.open-meteo.com/v1/forecast?latitude=$lat&longitude=$lon&current_weather=true&hourly=relativehumidity_2m&daily=temperature_2m_max,weathercode&timezone=auto&language=fr');
@@ -213,6 +232,8 @@ class _HomeState extends State<Home> {
           this.imageUrl = imageUrl;
           forecastList = forecastListTemp; // Stockage des prévisions
         });
+
+        checkForRainOrStorm(forecastListTemp);
       } else {
         setState(() {
           _cityName = 'Données météo non disponibles';
@@ -225,6 +246,7 @@ class _HomeState extends State<Home> {
     }
   }
 
+  // Méthode pour obtenir le nom de la ville en fonction des coordonnés avec l'api openstreetmap car je ne l'a trouve pas dans open meteo
   Future<String> _getCityNameFromCoords(double lat, double lon) async {
     final url = Uri.parse(
         'https://nominatim.openstreetmap.org/reverse?lat=$lat&lon=$lon&format=json&addressdetails=1&accept-language=fr');
@@ -242,12 +264,12 @@ class _HomeState extends State<Home> {
         }
       }
     } catch (e) {
-      return 'Ville inconnue'; // En cas d'erreur
+      return 'Ville inconnue';
     }
     return 'Ville inconnue';
   }
 
-  // Méthode pour faire une requête API Open-Meteo avec le nom de la ville
+  // Méthode pour faire une requête API Open-Meteo avec le nom de la ville trouvé grâce openstreetmap
   Future<void> _fetchWeatherByCity(String city) async {
     final geocodingUrl = Uri.parse(
         'https://geocoding-api.open-meteo.com/v1/search?name=$city&count=1&language=fr&format=json');
@@ -265,7 +287,6 @@ class _HomeState extends State<Home> {
           final lon = firstResult['longitude'];
           final cityName = firstResult['name'] ?? 'Ville inconnue';
 
-          // Maintenant, utilisez les coordonnées pour obtenir les données météo
           final url = Uri.parse(
               'https://api.open-meteo.com/v1/forecast?latitude=$lat&longitude=$lon&current_weather=true&hourly=relativehumidity_2m&daily=temperature_2m_max,weathercode&timezone=auto&language=fr');
 
@@ -274,7 +295,6 @@ class _HomeState extends State<Home> {
           if (weatherResponse.statusCode == 200) {
             final weatherData = json.decode(weatherResponse.body);
 
-            // Vérifiez que current_weather existe
             if (weatherData['current_weather'] == null) {
               setState(() {
                 _cityName = 'Données météo non disponibles';
@@ -289,7 +309,6 @@ class _HomeState extends State<Home> {
             final windSpeed = (currentWeather['windspeed'] as num).toDouble();
             final time = currentWeather['time'];
 
-            // Extraction de l'humidité relative actuelle
             final hourly = weatherData['hourly'];
             if (hourly == null) {
               setState(() {
@@ -303,13 +322,11 @@ class _HomeState extends State<Home> {
                 List<dynamic>.from(hourly['relativehumidity_2m'] ?? []);
             int humidity = 0;
 
-            // Trouver l'index correspondant à l'heure actuelle
             int index = hourlyTimes.indexOf(time);
             if (index != -1 && index < humidityValues.length) {
               humidity = (humidityValues[index] as num).round();
             }
 
-            // Extraction de la température maximale quotidienne et des codes météo
             final daily = weatherData['daily'];
             List<dynamic> forecastListTemp = [];
             if (daily != null &&
@@ -331,7 +348,6 @@ class _HomeState extends State<Home> {
               });
             }
 
-            // Mapping du weathercode à une description et une image
             String weatherDescription = weatherDescriptions[weathercode] ??
                 'Données météo indisponibles';
             String imageUrl = weatherImages[weathercode] ?? 'default_weather';
@@ -346,7 +362,7 @@ class _HomeState extends State<Home> {
                   ? forecastListTemp[0]['maxTemp']
                   : 0.0;
               this.imageUrl = imageUrl;
-              forecastList = forecastListTemp; // Stockage des prévisions
+              forecastList = forecastListTemp;
             });
           } else {
             setState(() {
@@ -371,10 +387,12 @@ class _HomeState extends State<Home> {
     }
   }
 
+  // Méthode pour convertir en degrés Celsius ou Fahrenheit
   double _convertCelsiusToFahrenheit(double celsius) {
     return celsius * 9 / 5 + 32;
   }
 
+  // Méthode qui permet d'avoir l'unité en celsius ou en fahrenheit
   void _toggleTemperatureUnit() {
     setState(() {
       if (isCelsius) {
@@ -386,6 +404,51 @@ class _HomeState extends State<Home> {
       }
       isCelsius = !isCelsius;
     });
+  }
+
+  // Méthode qui est censé m'afficher une notif, que j'utilise pour la pluie ou l'orage
+  void showNotification(String title, String body) {
+    FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+        FlutterLocalNotificationsPlugin();
+
+    const AndroidNotificationDetails androidPlatformChannelSpecifics =
+        AndroidNotificationDetails('channel_id', 'channel_name',
+            channelDescription: 'description',
+            importance: Importance.max,
+            priority: Priority.high,
+            ticker: 'ticker');
+
+    const NotificationDetails platformChannelSpecifics =
+        NotificationDetails(android: androidPlatformChannelSpecifics);
+
+    flutterLocalNotificationsPlugin.show(
+        0, title, body, platformChannelSpecifics);
+  }
+
+  // Méthode qui check s'il y a de la pluie ou de l'orage
+  void checkForRainOrStorm(List forecastList) {
+    bool hasRain = false;
+    bool hasStorm = false;
+
+    for (var dayForecast in forecastList) {
+      int weatherCode = dayForecast['weathercode'];
+
+      if ([51, 53, 55, 61, 63, 65, 66, 67, 80, 81, 82].contains(weatherCode)) {
+        hasRain = true;
+        break;
+      }
+      if ([95, 96, 99].contains(weatherCode)) {
+        hasStorm = true;
+        break;
+      }
+    }
+
+    if (hasRain) {
+      showNotification("Alerte météo", "Pluie prévus cette semaine.");
+    }
+    if (hasStorm) {
+      showNotification("Alerte météo", "Orage prévus cette semaine.");
+    }
   }
 
   final Shader linearGradient = const LinearGradient(
@@ -407,12 +470,10 @@ class _HomeState extends State<Home> {
           ),
           onSubmitted: (value) {
             if (value.isNotEmpty) {
-              _fetchWeatherByCity(
-                  value); // Remplace fetchWeatherData par _fetchWeatherByCity
+              _fetchWeatherByCity(value);
             }
           },
-          style: const TextStyle(
-              color: Colors.black), // Texte visible sur l'AppBar
+          style: const TextStyle(color: Colors.black),
         ),
       ),
       body: Container(
@@ -420,21 +481,6 @@ class _HomeState extends State<Home> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const SizedBox(height: 10),
-            ElevatedButton(
-              onPressed: _toggleTemperatureUnit,
-              style: ElevatedButton.styleFrom(
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
-              child: Text(
-                isCelsius ? 'Convertir en °F' : 'Convertir en °C',
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
             const SizedBox(height: 20),
             Text(
               _cityName,
@@ -609,23 +655,21 @@ class _HomeState extends State<Home> {
 
                   // Conversion de la date au format lisible
                   var parsedDate = DateTime.parse(selectedDay);
-                  var newDate = DateFormat('EEEE')
-                      .format(parsedDate)
-                      .substring(0, 3); // Ex: "Mon", "Tue"
+                  var newDate =
+                      DateFormat('EEEE').format(parsedDate).substring(0, 3);
 
                   // Température maximale pour la journée
-                  var maxTemp =
-                      forecastList[index]['maxTemp'].round().toString();
+                  var maxTemp = isCelsius
+                      ? forecastList[index]['maxTemp'].round()
+                      : (forecastList[index]['maxTemp'] * 9 / 5 + 32).round();
 
-                  // Création d'une carte météo pour chaque jour de la semaine
                   return GestureDetector(
                     onTap: () {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
                           builder: (context) => DetailPage(
-                            consolidatedWeatherList:
-                                forecastList, // Passer forecastList
+                            consolidatedWeatherList: forecastList,
                             selectedId: index,
                             location: _cityName,
                           ),
@@ -658,7 +702,7 @@ class _HomeState extends State<Home> {
                         children: [
                           // Affichage de la température maximale
                           Text(
-                            isCelsius ? '°C' : '°F', // Température avec unité
+                            '$maxTemp${isCelsius ? '°C' : '°F'}', // Température avec unité
                             style: TextStyle(
                               fontSize: 17,
                               color: selectedDay == today
