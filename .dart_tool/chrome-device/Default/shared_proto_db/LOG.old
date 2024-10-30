@@ -1,14 +1,17 @@
-2024/10/30-10:10:50.746 810 Reusing MANIFEST C:\Users\E7298~1.DAL\AppData\Local\Temp\flutter_tools.b0e44813\flutter_tools_chrome_device.ec548ea0\Default\shared_proto_db/MANIFEST-000001
-2024/10/30-10:10:50.747 810 Recovering log #23
-2024/10/30-10:10:50.750 810 Reusing old log C:\Users\E7298~1.DAL\AppData\Local\Temp\flutter_tools.b0e44813\flutter_tools_chrome_device.ec548ea0\Default\shared_proto_db/000023.log 
-2024/10/30-10:10:50.750 810 Delete type=0 #3
-2024/10/30-10:10:50.750 810 Delete type=0 #4
-2024/10/30-10:10:50.750 810 Delete type=0 #7
-2024/10/30-10:10:50.750 810 Delete type=2 #8
-2024/10/30-10:10:50.750 810 Delete type=0 #10
-2024/10/30-10:10:50.750 810 Delete type=2 #11
-2024/10/30-10:10:50.750 810 Delete type=0 #13
-2024/10/30-10:10:50.751 810 Delete type=2 #14
-2024/10/30-10:10:50.751 810 Delete type=0 #16
-2024/10/30-10:10:50.751 810 Delete type=2 #17
-2024/10/30-10:10:50.751 810 Delete type=0 #19
+2024/10/30-10:21:50.070 5af0 Reusing MANIFEST C:\Users\E7298~1.DAL\AppData\Local\Temp\flutter_tools.cfd0887a\flutter_tools_chrome_device.80e0b91a\Default\shared_proto_db/MANIFEST-000001
+2024/10/30-10:21:50.072 5af0 Recovering log #23
+2024/10/30-10:21:50.075 5af0 Reusing old log C:\Users\E7298~1.DAL\AppData\Local\Temp\flutter_tools.cfd0887a\flutter_tools_chrome_device.80e0b91a\Default\shared_proto_db/000023.log 
+2024/10/30-10:21:50.075 5af0 Delete type=0 #3
+2024/10/30-10:21:50.075 5af0 Delete type=0 #4
+2024/10/30-10:21:50.075 5af0 Delete type=0 #7
+2024/10/30-10:21:50.075 5af0 Delete type=2 #8
+2024/10/30-10:21:50.075 5af0 Delete type=0 #10
+2024/10/30-10:21:50.075 5af0 Delete type=2 #11
+2024/10/30-10:21:50.075 5af0 Delete type=0 #13
+2024/10/30-10:21:50.076 5af0 Delete type=2 #14
+2024/10/30-10:21:50.076 5af0 Delete type=0 #16
+2024/10/30-10:21:50.076 5af0 Delete type=2 #17
+2024/10/30-10:21:50.076 5af0 Delete type=0 #19
+2024/10/30-10:21:59.876 4f8 Level-0 table #26: started
+2024/10/30-10:21:59.886 4f8 Level-0 table #26: 146876 bytes OK
+2024/10/30-10:21:59.887 4f8 Delete type=0 #23
